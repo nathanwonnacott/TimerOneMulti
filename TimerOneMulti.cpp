@@ -181,36 +181,39 @@ void TimerOneMulti::advanceTimer()
   //Serial.println((int)events,HEX);
   if (events != NULL)
   {
-    if ( ! events->cancelled && events->timeRemainingAfterTick == 0)
+    do
     {
-      events->callback(events->arg);
-    }
-    
-    TimerEvent* oldEventsHead = events;
-    events = events->next;
-    
-    //If we need to add the event back into the queue
-    if ( (oldEventsHead->periodic || oldEventsHead->timeRemainingAfterTick > 0 )&& ! oldEventsHead->cancelled)
-    {
-      //Note that in the case that its periodic and there is timeRemaining after tick, the fact that its periodic doesn't really matter right now
-      if ( oldEventsHead->timeRemainingAfterTick > 0 )
+      if ( ! events->cancelled && events->timeRemainingAfterTick == 0)
       {
-        oldEventsHead->delta = oldEventsHead->timeRemainingAfterTick;
-        oldEventsHead->timeRemainingAfterTick = 0; //This will get set to the proper amount when we add it
+        events->callback(events->arg);
       }
-      else //Its periodic and the timer has expired (ie it doesn't have time remaining after tick)
+    
+      TimerEvent* oldEventsHead = events;
+      events = events->next;
+    
+      //If we need to add the event back into the queue
+      if ( (oldEventsHead->periodic || oldEventsHead->timeRemainingAfterTick > 0 )&& ! oldEventsHead->cancelled)
       {
-        //reset some things on the periodic event
-        oldEventsHead->delta = oldEventsHead->period;
-      }
+        //Note that in the case that its periodic and there is timeRemaining after tick, the fact that its periodic doesn't really matter right now
+        if ( oldEventsHead->timeRemainingAfterTick > 0 )
+        {
+          oldEventsHead->delta = oldEventsHead->timeRemainingAfterTick;
+          oldEventsHead->timeRemainingAfterTick = 0; //This will get set to the proper amount when we add it
+        }
+        else //Its periodic and the timer has expired (ie it doesn't have time remaining after tick)
+        {
+          //reset some things on the periodic event
+          oldEventsHead->delta = oldEventsHead->period;
+        }
       
-      //add it
-      oldEventsHead->next = NULL;
-      addEvent(oldEventsHead);
-    }
-    else
-      delete oldEventsHead;
-    
+        //add it
+        oldEventsHead->next = NULL;
+        addEvent(oldEventsHead);
+      }
+      else
+        delete oldEventsHead;
+   }while(events != NULL && events->delta == 0);
+ 
    if (events == NULL)
    {
      Timer1.stop();
